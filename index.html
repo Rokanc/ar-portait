@@ -46,12 +46,12 @@
       <!-- Option B: Built-in 'hiro' marker — easiest for a first test (no .patt file required). -->
      <a-marker preset="hiro" id="hiroMarker">
         <a-video id="hiroVideo" src="#portraitVideo"
-                 width="1.2" height="0.9"
-                 position="0 0.06 0"
-                 rotation="180 180 180"
-                 scale="-1 1 1"
-                 visible="false"></a-video>
-      
+             width="1" height="0.75"
+             position="0 0.5 0"
+             rotation="-90 180 0"
+             scale="1 1 1"
+             visible="false"></a-video>
+       
         <a-box position="0 0.25 0" depth="0.5" height="0.5" width="0.5" material="opacity:0.9"></a-box>
         <a-plane id="hiroFallback" src="#fallbackImg" width="1" height="1" position="0 -0.25 0" rotation="-90 0 0"></a-plane>
       </a-marker>
