@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>AR Portrait — Test</title>
+    <title>AR Portrait — Fixed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
@@ -15,17 +15,13 @@
   </head>
   <body>
     <div class="hud" id="hud">
-      THIS IS FIXED VERSION Point the camera at a marker. Quick test: use the built-in <b>hiro</b> marker (search "hiro marker ar" and print it).
-      <div class="note">If you want to use a custom portrait as a marker, generate <code>marker.patt</code> using the AR.js generator (see README).</div>
+      Point the camera at a Hiro marker. Tap this HUD to allow video autoplay.
     </div>
 
     <a-scene embedded arjs="sourceType: webcam;">
       <a-assets>
-        <!-- Put your video.mp4 in the same folder to test video overlay.
-             If video.mp4 is missing, the demo falls back to a placeholder image / box. -->
         <video id="portraitVideo" src="video.mp4" loop crossorigin="anonymous" playsinline webkit-playsinline></video>
 
-        <!-- simple inline SVG placeholder used as fallback -->
         <img id="fallbackImg" src="data:image/svg+xml;utf8,
         %3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E
           %3Crect width='100%25' height='100%25' fill='%23e8e8e8'/%3E
@@ -36,72 +32,54 @@
         %3C/svg%3E" />
       </a-assets>
 
-      <!-- Option A: Custom pattern marker (use marker.patt generated separately).
-           If you add marker.patt to the same folder, this marker will be used. -->
-      <a-marker type="pattern" url="marker.patt" id="patternMarker">
-        <a-video id="patternVideo" src="#portraitVideo" width="1" height="0.75" position="0 0 0" rotation="0 0 0" visible="false"></a-video>
-        <a-plane id="patternFallback" src="#fallbackImg" width="1" height="1" position="0 0 0" rotation="-90 0 0"></a-plane>
+      <!-- Hiro marker -->
+      <a-marker preset="hiro" id="hiroMarker">
+        <a-video id="hiroVideo" src="#portraitVideo"
+                 width="1.2" height="0.9"
+                 position="0 0.5 0.05"
+                 rotation="0 180 0"
+                 scale="-1 1 1"
+                 visible="false"
+                 material="side: double;"></a-video>
+
+        <!-- fallback plane if video fails -->
+        <a-plane id="hiroFallback" src="#fallbackImg" width="1" height="1" position="0 0.5 0.05" rotation="0 0 0"></a-plane>
       </a-marker>
-
-      <!-- Option B: Built-in 'hiro' marker — easiest for a first test (no .patt file required). -->
-     <a-marker preset="hiro" id="hiroMarker">
-      <a-video id="hiroVideo" src="#portraitVideo"
-               width="1.2" height="0.9"
-               position="0 0.5 0.2"
-               rotation="-90 180 0"
-               scale="-1 1 1"
-               visible="false"></a-video>
-       
-       <a-box position="0 0.25 -0.3"
-       depth="0.5" height="0.5" width="0.5"
-       material="opacity:0.9"></a-box>
-
-        <a-plane id="hiroFallback" src="#fallbackImg" width="1" height="1" position="0 -0.25 0" rotation="-90 0 0"></a-plane>
-      </a-marker>
-
 
       <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-      // Basic logic:
-      // - If video.mp4 is present and can play, show it on detected markers.
-      // - Otherwise, show fallback geometry (box/plane).
       const video = document.getElementById('portraitVideo');
 
       function showVideoOn(markerEl) {
         const v = markerEl.querySelector('a-video');
-        const fb = markerEl.querySelector('#hiroFallback, #patternFallback') || markerEl.querySelector('a-box');
-        if (v) v.setAttribute('visible', 'true');
-        if (fb) fb.setAttribute('visible', 'false');
-        // try to play the video (may require a user gesture on mobile)
-        video.play().catch(()=>{ /* autoplay prevented */ });
+        const fb = markerEl.querySelector('a-plane');
+        if(v) v.setAttribute('visible', 'true');
+        if(fb) fb.setAttribute('visible', 'false');
+        video.play().catch(()=>{});
       }
 
       function showFallbackOn(markerEl) {
         const v = markerEl.querySelector('a-video');
-        const fb = markerEl.querySelector('#hiroFallback, #patternFallback') || markerEl.querySelector('a-box');
-        if (v) v.setAttribute('visible', 'false');
-        if (fb) fb.setAttribute('visible', 'true');
+        const fb = markerEl.querySelector('a-plane');
+        if(v) v.setAttribute('visible', 'false');
+        if(fb) fb.setAttribute('visible', 'true');
       }
 
-      // Attach markerFound/markerLost listeners
       document.querySelectorAll('a-marker').forEach(marker=>{
         marker.addEventListener('markerFound', ()=>{
-          console.log('markerFound', marker.id);
-          if (video && video.readyState >= 3) {
+          if(video.readyState >= 3){
             showVideoOn(marker);
           } else {
             showFallbackOn(marker);
           }
         });
         marker.addEventListener('markerLost', ()=>{
-          console.log('markerLost', marker.id);
-          if (video && !video.paused) video.pause();
+          if(video && !video.paused) video.pause();
         });
       });
 
-      // Helpful: allow HUD click to attempt to start video (many mobiles require user gesture)
       document.getElementById('hud').addEventListener('click', ()=>{
         video.play().catch(()=>{});
       });
