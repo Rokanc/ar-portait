@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AR Portrait — MindAR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- A-Frame + MindAR -->
+    <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: black;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .hud {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        z-index: 10;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="hud">Point your camera at <b>Pirma.jpg</b></div>
+
+    <a-scene
+      mindar-image="imageTargetSrc: ./Pirma.mind; autoStart: true;"
+      embedded
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: true"
+      cursor="rayOrigin: mouse"
+    >
+      <!-- Camera -->
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <!-- When marker detected -->
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-image
+          src="./Pirma.jpg"
+          width="1.2"
+          height="0.9"
+          rotation="0 0 0"
+          position="0 0 0"
+          material="side: double;"
+        ></a-image>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      // Log messages to confirm the script actually runs
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("✅ Page loaded. Waiting for camera permissions...");
+
+        const scene = document.querySelector("a-scene");
+        scene.addEventListener("arReady", () => {
+          console.log("✅ MindAR is ready and camera is active!");
+        });
+
+        scene.addEventListener("targetFound", (e) => {
+          console.log("🎯 Marker found:", e);
+        });
+
+        scene.addEventListener("targetLost", (e) => {
+          console.log("❌ Marker lost:", e);
+        });
+      });
+    </script>
+  </body>
+</html>
