@@ -1,31 +1,178 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>AR.js Hiro Marker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-  <style>
-    body{margin:0;overflow:hidden;}
-  </style>
-</head>
-<body>
-<a-scene embedded
-         vr-mode-ui="enabled: false"
-         renderer="antialias: true"
-         arjs="sourceType: webcam;
-               facingMode: environment;
-               maxDetectionRate: 30;
-               sourceWidth: 1280;
-               sourceHeight: 720;
-               videoTexture: true;
-               debugUIEnabled: false;">
-  <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">
-    <a-box position="0 0.5 0" rotation="0 45 0" color="red" scale="0.5 0.5 0.5"></a-box>
-  </a-marker>
-  <a-entity camera></a-entity>
-</a-scene>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>AR Portrait - Video Overlay</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-</body>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.min.js"></script>
+    <style>
+      /* --- CSS Reset/Base --- */
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      /* --- HUD Styling --- */
+      .hud {
+        position: fixed;
+        z-index: 999;
+        left: 1rem; /* Use rem for better scaling */
+        top: 1rem;
+        padding: 0.5rem 1rem;
+        background: rgba(0, 0, 0, 0.7); /* Slightly darker background */
+        color: #fff;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.4;
+        max-width: 80%; /* Prevent stretching on very wide screens */
+      }
+      
+      .note {
+        display: block; /* Ensure note is on its own line */
+        font-size: 12px;
+        opacity: 0.8; /* Slightly reduced opacity */
+        margin-top: 5px;
+      }
+      
+      a {
+        color: #ffdd88; /* Slightly less harsh yellow */
+        text-decoration: none;
+      }
+      
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud" id="hud-instructions">
+      <strong id="hud-message">Point your camera at a Hiro marker.</strong>
+      <span class="note">Tap this box to try to enable video playback (required on some devices).</span>
+      </div>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+      <a-assets>
+        <video id="portraitVideo" src="video.mp4" loop playsinline webkit-playsinline preload="auto"></video>
+        <img id="fallbackImg" src="data:image/svg+xml;utf8,
+          %3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='46%25' font-size='32' font-family='sans-serif' text-anchor='middle' fill='%23333'%3EPLACEHOLDER%3C/text%3E%3Ctext x='50%25' y='60%25' font-size='20' font-family='sans-serif' text-anchor='middle' fill='%23666'%3E(Add video.mp4 to your project)%3C/text%3E%3C/svg%3E" />
+        </a-assets>
+
+      <a-marker type="pattern" url="pattern-marker.patt" id="arMarker">
+        
+        <a-video id="arVideoOverlay" src="#portraitVideo"
+                 width="1.2" height="0.9"
+                 position="0 0.6 0.1"
+                 rotation="-90 180 180"
+                 scale="1 1 1"
+                 visible="false"
+                 material="side: double;">
+        </a-video>
+        
+        <a-plane id="arFallbackPlane" src="#fallbackImg"
+                 width="1.2" height="0.9"
+                 position="0 0.6 0"
+                 rotation="-90 0 0"
+                 visible="true">
+                 </a-plane>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      /**
+       * AR Video Autoplay and Visibility Handler
+       * Uses a standard pattern for handling video autoplay restrictions and AR marker events.
+       */
+
+      // DOM Elements
+      const videoElement = document.getElementById('portraitVideo');
+      const hudElement = document.getElementById('hud-instructions');
+      const arMarkerElement = document.getElementById('arMarker');
+      const hudMessage = document.getElementById('hud-message');
+
+      // Constants for plane IDs
+      const VIDEO_PLANE_ID = 'arVideoOverlay';
+      const FALLBACK_PLANE_ID = 'arFallbackPlane';
+
+      // --- Helper Functions ---
+
+      /** Toggles visibility of the video/fallback planes on a given marker */
+      function setPlaneVisibility(markerEl, showVideo = false) {
+        const videoPlane = markerEl.querySelector(`#${VIDEO_PLANE_ID}`);
+        const fallbackPlane = markerEl.querySelector(`#${FALLBACK_PLANE_ID}`);
+
+        if (videoPlane) videoPlane.setAttribute('visible', showVideo);
+        if (fallbackPlane) fallbackPlane.setAttribute('visible', !showVideo);
+      }
+
+      /** Attempts to play the video element, handles the Promise rejection */
+      function tryPlayVideo() {
+          const playPromise = videoElement.play();
+          if (playPromise !== undefined) {
+              playPromise.then(() => {
+                  // Video successfully started playing
+                  hudElement.style.display = 'none'; // Hide HUD once video plays
+                  console.log('Video autoplay successful.');
+              }).catch(error => {
+                  // Autoplay failed (e.g., restricted by browser)
+                  console.error('Video autoplay failed:', error);
+                  hudMessage.textContent = 'Autoplay blocked. Tap to retry.';
+                  // Keep HUD visible to allow manual tap
+              });
+          }
+      }
+
+      // --- Marker Event Listeners ---
+
+      arMarkerElement.addEventListener('markerFound', () => {
+        // Check if video is loaded and ready to play (readyState 4 means enough data to play to the end)
+        if (videoElement.readyState >= 3) {
+          setPlaneVisibility(arMarkerElement, true); // Show video
+          tryPlayVideo();
+        } else {
+          setPlaneVisibility(arMarkerElement, false); // Show fallback
+          hudMessage.textContent = 'Video loading... Please wait.';
+        }
+      });
+
+      arMarkerElement.addEventListener('markerLost', () => {
+        // Pause video to save resources when marker is lost
+        if (!videoElement.paused) {
+          videoElement.pause();
+        }
+        setPlaneVisibility(arMarkerElement, false); // Keep fallback hidden by default when lost
+        // Optionally, could show a brief "Marker Lost" message on HUD
+      });
+
+      // --- Initial Load and HUD Click ---
+
+      // Listen for the HUD click to trigger manual video play (for mobile autoplay policies)
+      hudElement.addEventListener('click', () => {
+        if (videoElement.paused) {
+          tryPlayVideo();
+        }
+      });
+      
+      // Initial state: try to play video once metadata is loaded (helps pre-load on some devices)
+      videoElement.addEventListener('loadedmetadata', () => {
+        // Only attempt to play if it's currently paused
+        if (videoElement.paused) {
+             tryPlayVideo();
+        }
+      });
+      
+      // Initial message
+      document.addEventListener('DOMContentLoaded', () => {
+        // If the video isn't ready immediately, show the initial instruction
+        if (videoElement.readyState < 3) {
+            setPlaneVisibility(arMarkerElement, false); // Ensure fallback is visible if needed
+            hudMessage.textContent = 'Point your camera at a Hiro marker.';
+        }
+      });
+    </script>
+  </body>
 </html>
